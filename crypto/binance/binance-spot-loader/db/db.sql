@@ -1,0 +1,3 @@
+CREATE DATABASE tic;
+
+CREATE SCHEMA binance;

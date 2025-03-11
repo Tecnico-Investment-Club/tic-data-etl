@@ -1,0 +1,11 @@
+[flake8]
+select = ANN,B,B9,BLK,C,D,DAR,E,F,I,S,W
+max-complexity = 10
+ignore = ANN101,ANN102,ANN401,D105,D107,E501,W503
+max-line-length = 80
+application-import-names = {{cookiecutter.datasource}}_{{cookiecutter.package_name}},tests
+import-order-style = google
+per-file-ignores =
+    src/*:S101
+    tests/*:S101
+docstring-convention = google

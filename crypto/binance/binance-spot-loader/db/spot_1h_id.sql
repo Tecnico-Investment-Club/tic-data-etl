@@ -1,0 +1,1 @@
+CREATE SEQUENCE spot_1h_id_seq;
