@@ -70,7 +70,7 @@ class Source:
         """Get trading status of the provided symbols."""
         try:
             request = GetAssetsRequest(status=AssetStatus.ACTIVE, 
-                                       exchange=AssetExchange.NYSE)
+                                       asset_class=AssetClass.US_EQUITY)
             assets: List[Asset] = self._trading_data_client.get_all_assets(request)
             asset_status = []
             if symbols:

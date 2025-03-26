@@ -244,10 +244,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--as_service",
-        dest="as_service",
-        type=str,
-        required=False,
-        default=os.environ.get("AS_SERVICE"),
+        action='store_true',
         help="Enable continuous running.",
     )
 

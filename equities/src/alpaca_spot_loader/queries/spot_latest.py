@@ -27,5 +27,5 @@ class Queries(BaseQueriesLatest):
         "UPDATE alpaca.spot_{interval}_latest SET "
         "   active=data.active "
         "FROM (VALUES %s) AS data (symbol, active) "
-        "WHERE spot_1h_latest.symbol = data.symbol;"
+        "WHERE spot_{interval}_latest.symbol = data.symbol;"
     )

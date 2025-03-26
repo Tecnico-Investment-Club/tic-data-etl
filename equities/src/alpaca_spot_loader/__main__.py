@@ -60,7 +60,7 @@ class Loader:
         """Run process once."""
         self.mode = "SLOW"
         start = datetime.utcnow()
-
+        self.check_trading_status()
         keys = self.get_keys(symbol_lst)
         logger.info(f"Processing {self._n_active_symbols} symbols.")
 
@@ -73,16 +73,12 @@ class Loader:
         self._target.execute(SpotQueries.UPSERT.format(interval=self._interval), records)
         self._target.execute(SpotLatestQueries.UPSERT.format(interval=self._interval), latest_records)
         self._target.commit_transaction()
-
-        self.check_trading_status()
         end = datetime.utcnow()
         logger.info(
             f"Persisted klines ({len(records)})"
             f" for {self._n_active_symbols} symbols in {end - start}."
         )
-    
-    def load_batch(self, symbols:List[str]) -> Tuple[List[Tuple], List[Tuple]]:
-        return None
+
         
 
     def load_from_keys(self, keys: List[Tuple[str, datetime]]) -> Tuple[List[Tuple], List[Tuple]]:
@@ -99,7 +95,7 @@ class Loader:
                 symbol=symbol, interval=self._interval, start_time=start_time
             )
             if not bars:
-                logger.warning(f"No response for symbol: {symbol}.")
+                logger.warning(f"No bars available for symbol {symbol} starting at {start_time}.")
                 continue
             self.check_request_limit()
 
@@ -120,6 +116,7 @@ class Loader:
     def get_keys(self, symbol_lst: List[str]) -> List[Tuple[str, datetime]]:
         """Get (symbol, timestamp) combinations to request."""
         latest = self._target.get_latest(self.schema, self._interval)
+
         keys = []
         if latest:
             for symbol, latest_close, active in latest:
@@ -139,10 +136,7 @@ class Loader:
         if new_symbols:
             logger.info("Fetching earliest timestamps for new symbols...")
             for s in new_symbols:
-                #earliest_ts = self._source.get_earliest_valid_timestamp(s)
-                #if earliest_ts:
                 keys.append((s, datetime.min + timedelta(days=1))) # Earliest datetime will be replaced by earliest bar by the api 
-                #self.check_request_limit()
 
         self._n_active_symbols = len(keys)
         return keys
@@ -184,7 +178,7 @@ class Loader:
         trading_status = self._source.get_trading_status(inactive_symbols)
         self.check_request_limit()
         if trading_status:
-            active_symbols = [(symbol,) for symbol, active in trading_status if active]
+            active_symbols = [(symbol, active) for symbol, active in trading_status if active]
             if active_symbols:
                 self._target.execute(
                     SpotLatestQueries.CORRECT_TRADING_STATUS.format(interval=self._interval),
@@ -238,8 +232,10 @@ class Loader:
         self.setup(args=args)
 
         if args.as_service:
+            logger.info("Running as service...")
             self.run_as_service()
         else:
+            logger.info("Running once...")
             symbol_list = self._source.get_symbols()
             if symbol_list:
                 self.run_once(symbol_list)
@@ -251,10 +247,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--as_service",
-        dest="as_service",
-        type=str,
-        required=False,
-        default=os.environ.get("AS_SERVICE"),
+        action='store_true',
         help="Enable continuous running.",
     )
 
@@ -294,6 +287,5 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     parsed_args = parse_args()
-
     loader = Loader()
     loader.run(parsed_args)
