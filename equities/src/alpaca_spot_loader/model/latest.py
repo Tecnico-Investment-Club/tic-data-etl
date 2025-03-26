@@ -4,7 +4,8 @@
 from datetime import datetime
 from typing import List, Tuple
 
-from binance_spot_loader.model.base import BaseModel
+from alpaca_spot_loader.model.base import BaseModel
+
 
 class Latest(BaseModel):
     """Latest class."""

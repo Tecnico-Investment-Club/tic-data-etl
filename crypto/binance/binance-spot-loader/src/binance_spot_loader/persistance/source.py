@@ -36,7 +36,6 @@ class Source:
 
         self._api_key = credentials["API_KEY"]
         self._secret_key = credentials["SECRET_KEY"]
-
         self.interval = interval
 
     def connect(self) -> None:
@@ -64,18 +63,18 @@ class Source:
     def get_symbols(
         self, quote_symbols: Optional[Dict[str, int]]
     ) -> Optional[List[str]]:
-        """Gets all symbols quoted in the provided currencies (and their lenght)."""
+        """Gets all symbols quoted in the provided currencies (and their length)."""
         url = f"{self.base_url}exchangeInfo"
         response = self._session.get(url)
 
         if response.status_code == 200:
             symbols = []
             if quote_symbols:
-                for quote_symbol, lenght in quote_symbols.items():
+                for quote_symbol, length in quote_symbols.items():
                     temp_symbols = [
                         symbol["symbol"]
                         for symbol in response.json()["symbols"]
-                        if symbol["symbol"][-lenght:] == quote_symbol
+                        if symbol["symbol"][-length:] == quote_symbol
                     ]
                     symbols.extend(temp_symbols)
             else:

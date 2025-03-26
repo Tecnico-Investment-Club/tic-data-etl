@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 
 import psycopg2
 import psycopg2.extensions
+import time 
 from psycopg2.extras import execute_values
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ class Target:
 
         return res if res else None
 
+
     def get_inactive_symbols(self, schema: str, interval: str) -> Optional[List[str]]:
         """Get latest persisted open time for the available symbols."""
         cursor = self.cursor
@@ -85,8 +87,16 @@ class Target:
         query = ("SELECT NEXTVAL('{schema}.spot_{interval}_id_seq');").format(schema=schema, interval=interval)
         cursor.execute(query)
         res = cursor.fetchone()
-
         return res[0] if res else None
+
+    def get_next_ids(self, schema: str, interval: str, count: int) -> Optional[List[int]]:
+        """Get next id for the given interval."""
+        cursor = self.cursor
+        query = ("SELECT NEXTVAL('{schema}.spot_{interval}_id_seq') FROM generate_series(1, {count});").format(schema=schema, interval=interval, count=count)
+        cursor.execute(query)
+        res = cursor.fetchall()
+        return [row[0] for row in res] if res else None
+
 
     def execute(self, instruction: str, records: List[Tuple]) -> None:
         """Execute values.
