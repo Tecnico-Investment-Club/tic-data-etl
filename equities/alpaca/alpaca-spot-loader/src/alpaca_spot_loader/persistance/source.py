@@ -33,7 +33,7 @@ class Source:
 
     def __init__(self, connection_string: str, interval: str) -> None:
         credentials = dict(kv.split("=") for kv in connection_string.split(" "))
-        logger.logger.info(f"Connecting to Alpaca with credentials: {credentials}")
+        logger.info(f"Connecting to Alpaca with credentials: {credentials}")
         self._api_key = credentials["API_KEY"]
         self._secret_key = credentials["SECRET_KEY"]
         self.interval = interval
