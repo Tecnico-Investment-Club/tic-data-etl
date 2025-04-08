@@ -63,54 +63,62 @@ class Loader:
         self.check_trading_status()
         keys = self.get_keys(symbol_lst)
         logger.info(f"Processing {self._n_active_symbols} symbols.")
-
-        records, latest_records = self.load_from_keys(keys)
-
-        if len(records) != self._n_active_symbols:
+        persisted_records = self.load_from_keys(keys)
+        if persisted_records > self._n_active_symbols:
             self.mode = "FAST"
-
-        logger.info("Persisting records...")
-        self._target.execute(SpotQueries.UPSERT.format(interval=self._interval), records)
-        self._target.execute(SpotLatestQueries.UPSERT.format(interval=self._interval), latest_records)
-        self._target.commit_transaction()
         end = datetime.utcnow()
         logger.info(
-            f"Persisted klines ({len(records)})"
-            f" for {self._n_active_symbols} symbols in {end - start}."
+            f"Persisted records for {self._n_active_symbols} symbols in {end - start}."
         )
 
         
 
-    def load_from_keys(self, keys: List[Tuple[str, datetime]]) -> Tuple[List[Tuple], List[Tuple]]:
-        logger.info(f"Processing {self._n_active_symbols} symbols.")
-
+    def load_from_keys(self, keys: List[Tuple[str, datetime]]) -> int:
+        logger.info(f"Processing {self._n_active_symbols} symbols.")  
+        BATCH_SIZE = 1000
         record_objs: List[BarRecord] = []
         new_latest: List[Latest] = []
-        i = 1
+        processed_records = 0
+        persisted_records = 0
         for symbol, start_time in keys:
-            logger.info(f"Processing {symbol} ({i}/{self._n_active_symbols})...")
-            i += 1
-
+            processed_records += 1
+            logger.info(f"Processing {symbol} ({processed_records}/{self._n_active_symbols})...")
+            self.check_request_limit()
+            # Get bars and check limits
             bars = self._source.get_bars(
-                symbol=symbol, interval=self._interval, start_time=start_time
+                symbol=symbol, 
+                interval=self._interval, 
+                start_time=start_time
             )
+            
             if not bars:
                 logger.warning(f"No bars available for symbol {symbol} starting at {start_time}.")
-                continue
-            self.check_request_limit()
-
-            symbol_record_objs = []
-            record_ids = self._target.get_next_ids(self.schema, self._interval, len(bars))
-            for bar, id in zip(bars, record_ids):
-                symbol_record_objs.append(
-                    BarRecord.build_record(id, bar)
+            else:        
+                # Process bars without temporary list
+                record_ids = self._target.get_next_ids(self.schema, self._interval, len(bars))
+                for bar, record_id in zip(bars, record_ids):
+                    record_objs.append(BarRecord.build_record(record_id, bar))
+                
+            # Batch persistence
+            if record_objs and (processed_records % BATCH_SIZE == 0 or processed_records == self._n_active_symbols):
+                logger.info(f"Persisting {len(record_objs)} records...")
+                new_latest.append(self.latest_closed(symbol, record_objs))
+                self.persist_records(
+                    records=[r.as_tuple() for r in record_objs],
+                    latest_records=[r.as_tuple() for r in new_latest if r],
                 )
-            new_latest.append(self.latest_closed(symbol, symbol_record_objs))
-            record_objs.extend(symbol_record_objs)
+                persisted_records += len(record_objs)
+                record_objs.clear()
+                new_latest.clear()
+                logger.info(f"Persisted batch up to record {processed_records}")
+        
+        return persisted_records
+            
 
-        records = [record.as_tuple() for record in record_objs]
-        latest_records = [record.as_tuple() for record in new_latest if record]
-        return records, latest_records
+    def persist_records(self, records: List[Tuple], latest_records: List[Tuple]) -> None:
+        self._target.execute(SpotQueries.UPSERT.format(interval=self._interval), records)
+        self._target.execute(SpotLatestQueries.UPSERT.format(interval=self._interval), latest_records)
+        self._target.commit_transaction()
 
 
     def get_keys(self, symbol_lst: List[str]) -> List[Tuple[str, datetime]]:
@@ -207,7 +215,7 @@ class Loader:
                     logger.info(f"Waiting {timedelta(seconds=t)}... ({self.mode})")
                 elif self.mode == "SLOW":
                     interval_sec = int(
-                        (date_helpers.interval_to_milliseconds(self._interval) / 1000)
+                        date_helpers.interval_to_seconds(self._interval) 
                         / 4
                     )
                     t = secrets.choice(

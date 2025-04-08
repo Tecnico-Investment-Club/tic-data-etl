@@ -11,9 +11,9 @@ SECONDS_PER_UNIT: Dict[str, int] = {
     "w": 7 * 24 * 60 * 60,
 }
 
-def interval_to_milliseconds(interval: str):
+def interval_to_seconds(interval: str):
     """Converts interval to milliseconds."""
-    return parse_interval_to_timedelta(interval).total_seconds() * 1000
+    return parse_interval_to_timedelta(interval).total_seconds()
 
 
 def parse_interval_to_timedelta(interval_str: str) -> timedelta:
