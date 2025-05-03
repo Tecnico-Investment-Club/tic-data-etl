@@ -32,10 +32,10 @@ class Source:
     mkt_cap_filter: int = 5_000_000
 
     def __init__(self, connection_string: str, interval: str) -> None:
-        credentials = dict(kv.split("=") for kv in connection_string.split(" "))
-
-        self._api_key = credentials["API_KEY"]
-        self._secret_key = credentials["SECRET_KEY"]
+        if connection_string:
+            credentials = dict(kv.split("=") for kv in connection_string.split(" "))
+            self._api_key = credentials["API_KEY"]
+            self._secret_key = credentials["SECRET_KEY"]
         self.interval = interval
 
     def connect(self) -> None:
