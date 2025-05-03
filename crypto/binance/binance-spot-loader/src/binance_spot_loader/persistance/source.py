@@ -31,11 +31,7 @@ class Source:
 
     mkt_cap_filter: int = 5_000_000
 
-    def __init__(self, connection_string: str, interval: str) -> None:
-        if connection_string:
-            credentials = dict(kv.split("=") for kv in connection_string.split(" "))
-            self._api_key = credentials["API_KEY"]
-            self._secret_key = credentials["SECRET_KEY"]
+    def __init__(self, interval: str) -> None:
         self.interval = interval
 
     def connect(self) -> None:
@@ -44,7 +40,6 @@ class Source:
         self._headers = {
             "Accept": "application/json",
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",  # noqa: B950
-            "X-MBX-APIKEY": self._api_key,
         }
         self._session.headers.update(self._headers)
 
@@ -131,17 +126,6 @@ class Source:
             }
         else:
             params = {"symbol": symbol, "interval": interval, "limit": limit}
-
-        timestamp = str(int(time.time() * 1000))
-        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
-        signature = hmac.new(
-            self._secret_key.encode("utf-8"),
-            f"{query_string}&timestamp={timestamp}".encode("utf-8"),
-            hashlib.sha256,
-        ).hexdigest()
-        self._headers["X-MBX-TIMESTAMP"] = timestamp
-        self._headers["X-MBX-SIGNATURE"] = signature
-        self._session.headers.update(self._headers)
 
         response = self._session.get(url, params=params)
 

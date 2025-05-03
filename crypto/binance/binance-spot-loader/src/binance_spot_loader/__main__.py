@@ -41,7 +41,7 @@ class Loader:
 
     def setup(self, args: argparse.Namespace) -> None:
         """Set up loader and connections."""
-        self._source = source.Source(args.source, args.interval)
+        self._source = source.Source(args.interval)
         self._target = target.Target(args.target)
         self._interval = args.interval
         quote_symbols_str = args.quote_symbols
@@ -246,15 +246,6 @@ def parse_args() -> argparse.Namespace:
         "--as_service",
         action='store_true',
         help="Enable continuous running.",
-    )
-
-    parser.add_argument(
-        "--source",
-        dest="source",
-        type=str,
-        required=False,
-        default=os.environ.get("SOURCE"),
-        help="Binance credentials.",
     )
 
     parser.add_argument(
