@@ -28,4 +28,4 @@ RUN pip3 install .
 EXPOSE 9000
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["python", "-m", "alpaca_spot_loader"]
+CMD ["python", "-m", "alpaca_spot_loader", "--as_service"]
