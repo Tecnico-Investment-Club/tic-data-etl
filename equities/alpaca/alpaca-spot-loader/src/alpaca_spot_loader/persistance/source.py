@@ -66,24 +66,18 @@ class Source:
             return None
 
     def get_trading_status(
-        self, symbols: Optional[List[str]]
-    ) -> Optional[List[Tuple[str, bool]]]:
+        self, symbol: str
+    ) -> bool:
         """Get trading status of the provided symbols."""
         try:
-            request = GetAssetsRequest(status=AssetStatus.ACTIVE, 
-                                       asset_class=AssetClass.US_EQUITY)
-            assets: List[Asset] = self._trading_data_client.get_all_assets(request)
-            asset_status = []
-            if symbols:
-                asset_status = [
-                    (asset.symbol, asset.tradable)
-                    for asset in assets
-                    if asset.symbol in symbols
-                ]
-            return asset_status
+            logger.info(f"Getting trading status for {symbol}...")
+            asset = self._trading_data_client.get_asset(symbol)
+            if asset:
+                return asset.status == AssetStatus.ACTIVE and asset.tradable
         except APIError as e:
             logger.warning(f"Request failed with status code {e.status_code}")
             return None
+    
 
     def get_bars(
         self,

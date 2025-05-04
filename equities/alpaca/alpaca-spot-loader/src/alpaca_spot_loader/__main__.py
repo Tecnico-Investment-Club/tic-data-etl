@@ -167,15 +167,15 @@ class Loader:
                 ]
             )
         else:
-            active = date_helpers.check_active(self._interval, record_objs[0].open_time)
-            if not active:
+            is_open = date_helpers.check_active(self._interval, record_objs[0].open_time)
+            if not is_open:
                 last_bar = record_objs[0]
                 res = Latest.build_record(
                     [
                         symbol,
                         last_bar.id,
                         last_bar.open_time,
-                        active,
+                        self._source.get_trading_status(symbol),
                         self.source_name,
                     ]
                 )
@@ -185,7 +185,7 @@ class Loader:
         """Check if inactive pairs are trading again."""
         logger.info("Checking inactive symbols...")
         inactive_symbols = self._target.get_inactive_symbols(self.schema, self._interval)
-        trading_status = self._source.get_trading_status(inactive_symbols)
+        trading_status = [(symbol, self._source.get_trading_status(symbol)) for symbol in inactive_symbols]
         self.check_request_limit()
         if trading_status:
             active_symbols = [(symbol, active) for symbol, active in trading_status if active]
