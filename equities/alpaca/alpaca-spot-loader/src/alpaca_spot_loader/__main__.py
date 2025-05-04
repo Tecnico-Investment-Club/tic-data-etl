@@ -78,12 +78,13 @@ class Loader:
         BATCH_SIZE = 1000
         record_objs: List[BarRecord] = []
         new_latest: List[Latest] = []
-        processed_records = 0
+        processed_symbols = 0
         persisted_records = 0
         for symbol, start_time in keys:
-            processed_records += 1
-            logger.info(f"Processing {symbol} ({processed_records}/{self._n_active_symbols})...")
+            processed_symbols += 1
+            logger.info(f"Processing {symbol} ({processed_symbols}/{self._n_active_symbols})...")
             self.check_request_limit()
+            symbol_record_objs: List[BarRecord] = []
             # Get bars and check limits
             bars = self._source.get_bars(
                 symbol=symbol, 
@@ -97,12 +98,13 @@ class Loader:
                 # Process bars without temporary list
                 record_ids = self._target.get_next_ids(self.schema, self._interval, len(bars))
                 for bar, record_id in zip(bars, record_ids):
-                    record_objs.append(BarRecord.build_record(record_id, bar))
+                    symbol_record_objs.append(BarRecord.build_record(record_id, bar))
+                new_latest.append(self.latest_closed(symbol, symbol_record_objs))
+                record_objs.extend(symbol_record_objs)
                 
             # Batch persistence
-            if record_objs and (processed_records % BATCH_SIZE == 0 or processed_records == self._n_active_symbols):
+            if record_objs and (processed_symbols % BATCH_SIZE == 0 or processed_symbols == self._n_active_symbols):
                 logger.info(f"Persisting {len(record_objs)} records...")
-                new_latest.append(self.latest_closed(symbol, record_objs))
                 self.persist_records(
                     records=[r.as_tuple() for r in record_objs],
                     latest_records=[r.as_tuple() for r in new_latest if r],
@@ -110,7 +112,7 @@ class Loader:
                 persisted_records += len(record_objs)
                 record_objs.clear()
                 new_latest.clear()
-                logger.info(f"Persisted batch up to record {processed_records}")
+                logger.info(f"Persisted batch up to symbol {processed_symbols}")
         
         return persisted_records
             
