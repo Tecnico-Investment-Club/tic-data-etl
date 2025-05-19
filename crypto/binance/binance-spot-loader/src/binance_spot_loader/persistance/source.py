@@ -56,20 +56,31 @@ class Source:
             logger.info(f"Connection failed with status code {response.status_code}")
 
     def get_symbols(
-        self, quote_symbols: Optional[Dict[str, int]]
+        self, quote_symbols: Optional[Dict[str, int]], base_symbols: Optional[Dict[str, int]]
     ) -> Optional[List[str]]:
-        """Gets all symbols quoted in the provided currencies (and their length)."""
+        """Gets all symbols with the provided base and quote currencies."""
         url = f"{self.base_url}exchangeInfo"
         response = self._session.get(url)
 
         if response.status_code == 200:
             symbols = []
-            if quote_symbols:
-                for quote_symbol, length in quote_symbols.items():
+            if quote_symbols and base_symbols:
+                for quote_symbol, len_q in quote_symbols.items():
+                    for base_symbol, len_b in base_symbols.items():
+                        temp_symbols = [
+                            symbol["symbol"]
+                            for symbol in response.json()["symbols"]
+                            if symbol["symbol"][-len_q:] == quote_symbol
+                            and symbol["symbol"][:len_b] == base_symbol
+                            and len(symbol["symbol"]) == len_b + len_q
+                        ]
+                        symbols.extend(temp_symbols)
+            elif quote_symbols:
+                for quote_symbol, len_q in quote_symbols.items():
                     temp_symbols = [
                         symbol["symbol"]
                         for symbol in response.json()["symbols"]
-                        if symbol["symbol"][-length:] == quote_symbol
+                        if symbol["symbol"][-len_q:] == quote_symbol
                     ]
                     symbols.extend(temp_symbols)
             else:

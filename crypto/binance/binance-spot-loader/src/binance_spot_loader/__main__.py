@@ -31,13 +31,14 @@ class Loader:
 
     _interval: str
     _quote_symbols: Dict[str, int]
+    _base_symbols: Dict[str, int]
     _n_active_symbols: int
 
     def __init__(self) -> None:
         self.source_name = "BINANCE"
         self.mode = "FAST"
         self.n_requests = 1
-        self.schema = "binance"
+        self._schema = "binance"
 
     def setup(self, args: argparse.Namespace) -> None:
         """Set up loader and connections."""
@@ -45,9 +46,15 @@ class Loader:
         self._target = target.Target(args.target)
         self._interval = args.interval
         quote_symbols_str = args.quote_symbols
-        self._quote_symbols = dict(
-            (symbol, len(symbol)) for symbol in quote_symbols_str.split(sep=",")
-        )
+        if quote_symbols_str:
+            self._quote_symbols = dict(
+                (symbol, len(symbol)) for symbol in quote_symbols_str.split(sep=",")
+            )
+        base_symbols_str = args.base_symbols
+        if base_symbols_str:
+            self._base_symbols = dict(
+                (symbol, len(symbol)) for symbol in base_symbols_str.split(sep=",")
+            )
 
         self._source.connect()
         self._target.connect()
@@ -85,7 +92,7 @@ class Loader:
 
             symbol_record_objs = []
             for record in raw_records:
-                record_id = self._target.get_next_id(self.schema, self._interval)
+                record_id = self._target.get_next_id(self._schema, self._interval)
                 symbol_record_objs.append(
                     Kline.build_record([record_id, symbol] + record)
                 )
@@ -112,7 +119,7 @@ class Loader:
 
     def get_keys(self, symbol_lst: List[str]) -> List[Tuple[str, int]]:
         """Get (symbol, timestamp) combinations to request."""
-        latest = self._target.get_latest(self.schema, self._interval)
+        latest = self._target.get_latest(self._schema, self._interval)
         keys = []
         if latest:
             for k in latest:
@@ -173,7 +180,7 @@ class Loader:
     def check_trading_status(self) -> None:
         """Check if inactive pairs are trading again."""
         logger.info("Checking inactive symbols...")
-        inactive_symbols = self._target.get_inactive_symbols(self.schema, self._interval)
+        inactive_symbols = self._target.get_inactive_symbols(self._schema, self._interval)
         trading_status = self._source.get_trading_status(inactive_symbols)
         self.check_request_limit()
         if trading_status:
@@ -192,8 +199,9 @@ class Loader:
         # ON THE FIRST RUN IT GETS SYMBOLS ACCORDING TO FILTERS
         # AFTER THAT IT ONLY UPDATE THOSE SYMBOLS
         logger.info("Fetching symbols...")
-        symbol_list = self._source.get_symbols(self._quote_symbols)
+        symbol_list = self._source.get_symbols(self._quote_symbols, self._base_symbols)
         if not symbol_list:
+            logger.warning("No symbols found. Stopping.")
             return None
         logger.info("Running...")
         break_process = False
@@ -230,21 +238,24 @@ class Loader:
         logger.info("Starting process...")
         self.setup(args=args)
 
-        if args.as_service:
+        if args.run_as_service:
             self.run_as_service()
         else:
-            symbol_list = self._source.get_symbols(self._quote_symbols)
+            symbol_list = self._source.get_symbols(self._quote_symbols, self._base_symbols)
             if symbol_list:
                 self.run_once(symbol_list)
 
 
 def parse_args() -> argparse.Namespace:
     """Parses user input arguments when starting loading process."""
-    parser = argparse.ArgumentParser(prog="python ./src/binace_spot_loader/__main__.py")
+    parser = argparse.ArgumentParser(prog="python ./src/binance_spot_loader/__main__.py")
 
     parser.add_argument(
-        "--as_service",
-        action='store_true',
+        "--run_as_service",
+        dest="run_as_service",
+        type=str,
+        required=False,
+        default=os.environ.get("RUN_AS_SERVICE"),
         help="Enable continuous running.",
     )
 
@@ -278,6 +289,16 @@ def parse_args() -> argparse.Namespace:
         default=os.environ.get("QUOTE_SYMBOLS"),
         help="Load symbols quoted in quote_symbols. e.g.: "
         "USDT,TUSD,BUSD,BNB,BTC,ETH",
+    )
+
+    parser.add_argument(
+        "--base_symbols",
+        dest="base_symbols",
+        type=str,
+        required=False,
+        default=os.environ.get("BASE_SYMBOLS"),
+        help="Load symbols based in base_symbols. e.g.: "
+             "BTC,ETH,DOGE",
     )
 
     a = parser.parse_args()
