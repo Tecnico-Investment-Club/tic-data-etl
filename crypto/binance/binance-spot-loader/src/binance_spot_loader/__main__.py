@@ -55,6 +55,8 @@ class Loader:
             self._base_symbols = dict(
                 (symbol, len(symbol)) for symbol in base_symbols_str.split(sep=",")
             )
+        else:
+            self._base_symbols = {}
 
         self._source.connect()
         self._target.connect()
@@ -184,7 +186,7 @@ class Loader:
         trading_status = self._source.get_trading_status(inactive_symbols)
         self.check_request_limit()
         if trading_status:
-            active_symbols = [(s[0],) for s in trading_status if s[1] == "TRADING"]
+            active_symbols = [(s[0],True) for s in trading_status if s[1] == "TRADING"]
             if active_symbols:
                 self._target.execute(
                     SpotLatestQueries.CORRECT_TRADING_STATUS.format(interval=self._interval),

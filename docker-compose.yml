@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  1d-binance-loader:
+    image: binance-etl
+    build: ./crypto/binance/binance-spot-loader
+    container_name: 1d-binance-etl
+    env_file: ./env/binance-1d.env
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  1h-binance-loader:
+    image: binance-etl
+    container_name: 1h-binance-etl
+    env_file: ./env/binance-1h.env
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  1m-binance-loader:
+    image: binance-etl
+    container_name: 1m-binance-etl
+    env_file: ./env/binance-1m.env
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # 1d-alpaca-equities-loader:
+  #   image: alpaca-etl
+  #   build: ./equities/alpaca/alpaca-equities-loader
+  #   container_name: 1d-alpaca-equities-loader
+  #   env_file: ./env/alpaca-1d.env
+  #   restart: always
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"

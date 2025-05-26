@@ -1,0 +1,23 @@
+name: Remote Docker Compose Deployment
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Connect to server and deploy
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_SECRET_KEY }}
+          script: |
+            cd ~/tic-data-etl
+            git pull origin main
+            docker-compose down
+            docker-compose build
+            docker-compose up -d --force-recreate
