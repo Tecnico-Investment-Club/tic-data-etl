@@ -6,6 +6,8 @@ services:
     build: ./crypto/binance/binance-spot-loader
     container_name: 1d-binance-etl
     env_file: ./env/binance-1d.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
     logging:
       driver: "json-file"
@@ -17,6 +19,8 @@ services:
     image: binance-etl
     container_name: 1h-binance-etl
     env_file: ./env/binance-1h.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
     logging:
       driver: "json-file"
@@ -28,6 +32,8 @@ services:
     image: binance-etl
     container_name: 1m-binance-etl
     env_file: ./env/binance-1m.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
     logging:
       driver: "json-file"
