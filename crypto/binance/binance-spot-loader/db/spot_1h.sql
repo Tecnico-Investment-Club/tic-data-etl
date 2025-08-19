@@ -1,4 +1,4 @@
-CREATE TABLE spot_1h
+CREATE TABLE binance.spot_1h
 (
     id                                      BIGINT,
     symbol                                  VARCHAR(20) NOT NULL,

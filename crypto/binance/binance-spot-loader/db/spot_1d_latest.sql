@@ -1,4 +1,4 @@
-CREATE TABLE spot_1d_latest
+CREATE TABLE binance.spot_1d_latest
 (
     symbol                                  VARCHAR(20),
     id                                      BIGINT,

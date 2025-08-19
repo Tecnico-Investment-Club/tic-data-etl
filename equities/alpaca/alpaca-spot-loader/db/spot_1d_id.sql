@@ -1,1 +1,1 @@
-CREATE SEQUENCE spot_1d_id_seq;
+CREATE SEQUENCE alpaca.spot_1d_id_seq;
