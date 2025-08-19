@@ -18,6 +18,6 @@ jobs:
           script: |
             cd ~/tic-data-etl
             git pull origin main
-            docker-compose down
-            docker-compose build
-            docker-compose up -d --force-recreate
+            docker compose down
+            docker compose build
+            docker compose up -d --force-recreate
